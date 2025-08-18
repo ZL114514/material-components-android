@@ -917,6 +917,10 @@ public class MaterialContainerTransform extends Transition {
       boundingView = null;
     }
     
+    // Solve WebView
+    startView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+    endView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+            
     // Calculate drawable bounds and offset start/end bounds as needed
     RectF drawingViewBounds = getLocationInWindow(drawingView);
     float offsetX = -drawingViewBounds.left;
@@ -996,10 +1000,6 @@ public class MaterialContainerTransform extends Transition {
             // Add the transition drawable to the root ViewOverlay
             drawingView.getOverlay().add(transitionDrawable);
 
-            // Solve WebView
-            startView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-            endView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-            
             // Hide the actual views at the beginning of the transition
             startView.setAlpha(0);
             endView.setAlpha(0);
