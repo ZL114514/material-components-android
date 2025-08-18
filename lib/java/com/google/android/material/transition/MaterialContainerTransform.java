@@ -976,10 +976,14 @@ public class MaterialContainerTransform extends Transition {
         new Animator.AnimatorListener() {
           void showTransitionEnd() {
             animator.removeListener(this);
+            startView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            endView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            
             if (holdAtEndEnabled) {
               // Keep drawable showing and views hidden (useful for Activity return transitions)
               return;
             }
+                        
             // Show the actual views at the end of the transition
             startView.setAlpha(1);
             endView.setAlpha(1);
@@ -993,10 +997,15 @@ public class MaterialContainerTransform extends Transition {
             // Add the transition drawable to the root ViewOverlay
             drawingView.getOverlay().add(transitionDrawable);
 
+            // Solve WebView
+            startView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+            endView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+            
             // Hide the actual views at the beginning of the transition
             startView.setAlpha(0);
             endView.setAlpha(0);
-          }
+            
+            }
 
           @Override
           public void onAnimationEnd(@NonNull Animator animation) {
