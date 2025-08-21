@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 The Android Open Source Project
+ * Copyright 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.material.catalog.lists;
+package io.material.catalog.listitem;
 
 import io.material.catalog.R;
 
@@ -28,7 +28,6 @@ import androidx.recyclerview.widget.RecyclerView.ItemDecoration;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -39,9 +38,8 @@ import io.material.catalog.feature.DemoFragment;
 import java.util.ArrayList;
 import java.util.List;
 
-/** A fragment that displays a List demos with custom content for the Catalog app. */
-public class ListsCustomContentDemoFragment extends DemoFragment {
-
+/** A fragment that displays the main List demos for the Catalog app. */
+public class ListsMainDemoFragment extends DemoFragment {
   @NonNull
   @Override
   public View onCreateDemoView(
@@ -52,9 +50,13 @@ public class ListsCustomContentDemoFragment extends DemoFragment {
         (RecyclerView) layoutInflater.inflate(R.layout.cat_lists_fragment, viewGroup, false);
 
     view.setLayoutManager(new LinearLayoutManager(getContext()));
-    List<CustomCardData> data = new ArrayList<>();
+    List<CustomListItemData> data = new ArrayList<>();
     for (int i = 0; i < 20; i++) {
-      data.add(new CustomCardData(i+1));
+      data.add(
+          new CustomListItemData(
+              String.format(view.getContext().getString(R.string.cat_list_item_text), i + 1),
+              i,
+              20));
     }
 
     view.setAdapter(new ListsAdapter(data));
@@ -66,9 +68,9 @@ public class ListsCustomContentDemoFragment extends DemoFragment {
   /** An Adapter that shows custom list items */
   public static class ListsAdapter extends Adapter<CustomItemViewHolder> {
 
-    private final List<CustomCardData> items;
+    private final List<CustomListItemData> items;
 
-    public ListsAdapter(@NonNull List<CustomCardData> items) {
+    public ListsAdapter(@NonNull List<CustomListItemData> items) {
       this.items = items;
     }
 
@@ -77,14 +79,15 @@ public class ListsCustomContentDemoFragment extends DemoFragment {
     public CustomItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int position) {
       ViewGroup item =
           (ViewGroup)
-              LayoutInflater.from(parent.getContext()).inflate(R.layout.cat_list_item_viewholder, parent, /* attachToRoot= */ false);
+              LayoutInflater.from(parent.getContext())
+                  .inflate(R.layout.cat_list_item_viewholder, parent, /* attachToRoot= */ false);
       return new CustomItemViewHolder(item);
     }
 
     @Override
     public void onBindViewHolder(
         @NonNull CustomItemViewHolder viewHolder, int position) {
-      CustomCardData data = getItemAt(position);
+      CustomListItemData data = getItemAt(position);
       viewHolder.bind(data);
     }
 
@@ -94,16 +97,8 @@ public class ListsCustomContentDemoFragment extends DemoFragment {
     }
 
     @NonNull
-    public CustomCardData getItemAt(int i) {
+    public CustomListItemData getItemAt(int i) {
       return items.get(i);
-    }
-  }
-
-  static class CustomCardData {
-    int cardNumber;
-    boolean checked;
-    public CustomCardData(int i) {
-      cardNumber = i;
     }
   }
 
@@ -126,29 +121,22 @@ public class ListsCustomContentDemoFragment extends DemoFragment {
     }
   }
 
-  /** A ViewHolder that shows a custom list item */
+  /** A ViewHolder that shows custom list items */
   public static class CustomItemViewHolder extends ListItemViewHolder {
 
-    private final ImageView startButton;
-    private final ImageView endButton;
-    private final TextView text;
+    private final TextView textView;
     private final MaterialCardView cardView;
 
 
     public CustomItemViewHolder(@NonNull View itemView) {
       super(itemView);
-      startButton = itemView.findViewById(R.id.cat_list_item_start_icon);
-      endButton = itemView.findViewById(R.id.cat_list_item_end_icon);
-      text = itemView.findViewById(R.id.cat_list_item_text);
+      textView = itemView.findViewById(R.id.cat_list_item_text);
       cardView = itemView.findViewById(R.id.cat_list_item_card_view);
     }
 
-    public void bind(@NonNull CustomCardData data) {
+    public void bind(@NonNull CustomListItemData data) {
       super.bind();
-      text.setText(String.valueOf(data.cardNumber));
-      startButton.setImageResource(R.drawable.logo_avatar_anonymous_40dp);
-      endButton.setImageResource(R.drawable.ic_drag_handle_vd_theme_24px);
-
+      textView.setText(data.text);
       cardView.setChecked(data.checked);
       cardView.setOnClickListener(
           v -> {
