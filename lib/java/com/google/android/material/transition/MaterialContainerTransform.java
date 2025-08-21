@@ -916,11 +916,7 @@ public class MaterialContainerTransform extends Transition {
       drawingView = findAncestorById(drawingBaseView, drawingViewId);
       boundingView = null;
     }
-    
-    // Solve WebView
-    startView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-    endView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-            
+                
     // Calculate drawable bounds and offset start/end bounds as needed
     RectF drawingViewBounds = getLocationInWindow(drawingView);
     float offsetX = -drawingViewBounds.left;
@@ -979,9 +975,7 @@ public class MaterialContainerTransform extends Transition {
         new Animator.AnimatorListener() {
           void showTransitionEnd() {
             animator.removeListener(this);
-            startView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-            endView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-            
+                        
             if (holdAtEndEnabled) {
               // Keep drawable showing and views hidden (useful for Activity return transitions)
               return;
