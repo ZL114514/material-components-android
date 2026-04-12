@@ -20,6 +20,7 @@ import io.material.catalog.R;
 
 import android.app.Dialog;
 import android.os.Bundle;
+import androidx.appcompat.widget.TooltipCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -71,6 +72,7 @@ public class BottomSheetUnscrollableContentDemoFragment extends DemoFragment {
 
       Button closeButton = bottomSheetDialog.findViewById(R.id.close_icon);
       closeButton.setOnClickListener(v -> bottomSheetDialog.dismiss());
+      TooltipCompat.setTooltipText(closeButton, closeButton.getContentDescription());
 
       View bottomSheetContent = bottomSheetInternal.findViewById(R.id.bottom_drawer_3);
       ViewUtils.doOnApplyWindowInsets(bottomSheetContent, (v, insets, initialPadding) -> {

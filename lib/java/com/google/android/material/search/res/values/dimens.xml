@@ -30,4 +30,5 @@
 
   <dimen name="m3_searchbar_parent_width_breakpoint">312dp</dimen>
 
+  <dimen name="m3e_searchview_appbarwithsearch_toolbar_height">@dimen/m3_comp_search_view_contained_full_screen_bar_container_height</dimen>
 </resources>

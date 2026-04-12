@@ -19,6 +19,7 @@ package com.google.android.material.search;
 import com.google.android.material.R;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
+import static com.google.android.material.search.SearchBar.NO_RES_ID;
 import static com.google.android.material.theme.overlay.MaterialThemeOverlay.wrap;
 
 import android.annotation.SuppressLint;
@@ -38,9 +39,11 @@ import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver.OnTouchModeChangeListener;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
@@ -145,6 +148,7 @@ public class SearchView extends FrameLayout
   final MaterialToolbar toolbar;
   final Toolbar dummyToolbar;
   final TextView searchPrefix;
+  final TextView dummyTextView;
   final LinearLayout textContainer;
   final EditText editText;
   final ImageButton clearButton;
@@ -169,8 +173,25 @@ public class SearchView extends FrameLayout
   @ColorInt private final int backgroundColor;
   private boolean useWindowInsetsController;
   private boolean statusBarSpacerEnabledOverride;
+  private final boolean dividerVisible;
+  private final boolean containedAnimationEnabled;
   @NonNull private TransitionState currentTransitionState = TransitionState.HIDDEN;
   private Map<View, Integer> childImportantForAccessibilityMap;
+  private final OnTouchModeChangeListener touchModeChangeListener =
+      new OnTouchModeChangeListener() {
+        @Override
+        public void onTouchModeChanged(boolean isInTouchMode) {
+          // If we enter non touch mode and the SearchView is showing in the currently focused
+          // window, request focus on the EditText to prevent focusing views behind SearchView.
+          if (!isInTouchMode
+              && hasWindowFocus()
+              && isShowing()
+              && editText != null
+              && !editText.isFocused()) {
+            editText.post(editText::requestFocus);
+          }
+        }
+      };
 
   public SearchView(@NonNull Context context) {
     this(context, null);
@@ -190,8 +211,9 @@ public class SearchView extends FrameLayout
             context, attrs, R.styleable.SearchView, defStyleAttr, DEF_STYLE_RES);
 
     backgroundColor = a.getColor(R.styleable.SearchView_backgroundTint, 0);
-    int headerLayoutResId = a.getResourceId(R.styleable.SearchView_headerLayout, -1);
-    int textAppearanceResId = a.getResourceId(R.styleable.SearchView_android_textAppearance, -1);
+    int headerLayoutResId = a.getResourceId(R.styleable.SearchView_headerLayout, NO_RES_ID);
+    int textAppearanceResId =
+        a.getResourceId(R.styleable.SearchView_android_textAppearance, NO_RES_ID);
     String text = a.getString(R.styleable.SearchView_android_text);
     String hint = a.getString(R.styleable.SearchView_android_hint);
     String searchPrefixText = a.getString(R.styleable.SearchView_searchPrefixText);
@@ -202,6 +224,9 @@ public class SearchView extends FrameLayout
     boolean hideNavigationIcon = a.getBoolean(R.styleable.SearchView_hideNavigationIcon, false);
     autoShowKeyboard = a.getBoolean(R.styleable.SearchView_autoShowKeyboard, true);
     backHandlingEnabled = a.getBoolean(R.styleable.SearchView_backHandlingEnabled, true);
+    dividerVisible = a.getBoolean(R.styleable.SearchView_dividerVisible, true);
+    containedAnimationEnabled =
+        a.getBoolean(R.styleable.SearchView_containedAnimationEnabled, false);
 
     a.recycle();
 
@@ -216,6 +241,7 @@ public class SearchView extends FrameLayout
     toolbarContainer = findViewById(R.id.open_search_view_toolbar_container);
     toolbar = findViewById(R.id.open_search_view_toolbar);
     dummyToolbar = findViewById(R.id.open_search_view_dummy_toolbar);
+    dummyTextView = findViewById(R.id.open_search_view_dummy_text_view);
     searchPrefix = findViewById(R.id.open_search_view_search_prefix);
     textContainer = findViewById(R.id.open_search_view_text_container);
     editText = findViewById(R.id.open_search_view_edit_text);
@@ -223,7 +249,8 @@ public class SearchView extends FrameLayout
     divider = findViewById(R.id.open_search_view_divider);
     contentContainer = findViewById(R.id.open_search_view_content_container);
 
-    searchViewAnimationHelper = new SearchViewAnimationHelper(this);
+    searchViewAnimationHelper =
+        new SearchViewAnimationHelper(context, this, containedAnimationEnabled);
     elevationOverlayProvider = new ElevationOverlayProvider(context);
 
     setUpRootView();
@@ -233,12 +260,18 @@ public class SearchView extends FrameLayout
     setUpEditText(textAppearanceResId, text, hint);
     setUpBackButton(useDrawerArrowDrawable, hideNavigationIcon);
     setUpClearButton();
+    setUpDivider();
     setUpContentOnTouchListener();
     setUpInsetListeners();
 
     // Necessary to enable keyboard navigation to the searchview contents due to toolbar being a
     // keyboard navigation cluster from API 26+
     setToolbarTouchscreenBlocksFocus(false);
+
+    if (containedAnimationEnabled) {
+      setUpDummyToolbarForContainedAnimation();
+      setUpDummyTextForContainedAnimation(textAppearanceResId);
+    }
   }
 
   @Override
@@ -271,6 +304,7 @@ public class SearchView extends FrameLayout
     TransitionState state = getCurrentTransitionState();
     updateModalForAccessibility(state);
     updateListeningForBackCallbacks(state);
+    getViewTreeObserver().addOnTouchModeChangeListener(touchModeChangeListener);
   }
 
   @Override
@@ -279,6 +313,7 @@ public class SearchView extends FrameLayout
 
     setModalForAccessibility(/* isSearchViewModal= */ false);
     backOrchestrator.stopListeningForBackCallbacks();
+    getViewTreeObserver().removeOnTouchModeChangeListener(touchModeChangeListener);
   }
 
   @Override
@@ -292,7 +327,7 @@ public class SearchView extends FrameLayout
     if (isHiddenOrHiding() || searchBar == null) {
       return;
     }
-    if (searchBar != null) {
+    if (!containedAnimationEnabled) {
       searchBar.setPlaceholderText(editText.getText().toString());
     }
     searchViewAnimationHelper.startBackProgress(backEvent);
@@ -377,7 +412,7 @@ public class SearchView extends FrameLayout
   }
 
   private void setUpHeaderLayout(int headerLayoutResId) {
-    if (headerLayoutResId != -1) {
+    if (headerLayoutResId != NO_RES_ID) {
       View headerView =
           LayoutInflater.from(getContext()).inflate(headerLayoutResId, headerContainer, false);
       addHeaderView(headerView);
@@ -385,7 +420,7 @@ public class SearchView extends FrameLayout
   }
 
   private void setUpEditText(@StyleRes int textAppearanceResId, String text, String hint) {
-    if (textAppearanceResId != -1) {
+    if (textAppearanceResId != NO_RES_ID) {
       TextViewCompat.setTextAppearance(editText, textAppearanceResId);
     }
     editText.setText(text);
@@ -429,6 +464,10 @@ public class SearchView extends FrameLayout
         });
   }
 
+  private void setUpDivider() {
+    divider.setVisibility(dividerVisible ? VISIBLE : GONE);
+  }
+
   @SuppressLint("ClickableViewAccessibility") // Will be handled by accessibility delegate.
   private void setUpContentOnTouchListener() {
     contentContainer.setOnTouchListener(
@@ -444,6 +483,24 @@ public class SearchView extends FrameLayout
     if (statusBarSpacer.getLayoutParams().height != height) {
       statusBarSpacer.getLayoutParams().height = height;
       statusBarSpacer.requestLayout();
+    }
+  }
+
+  private void setUpDummyToolbarForContainedAnimation() {
+    // Change layout gravity to START to match the search view toolbar as they will be animated in
+    // parallel.
+    FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) dummyToolbar.getLayoutParams();
+    lp.gravity = Gravity.START;
+    dummyToolbar.setLayoutParams(lp);
+
+    // Make the dummy toolbar invisible, rather than gone, so it is laid out and ready for
+    // animation.
+    dummyToolbar.setVisibility(View.INVISIBLE);
+  }
+
+  private void setUpDummyTextForContainedAnimation(@StyleRes int textAppearanceResId) {
+    if (textAppearanceResId != NO_RES_ID) {
+      TextViewCompat.setTextAppearance(dummyTextView, textAppearanceResId);
     }
   }
 
@@ -731,6 +788,12 @@ public class SearchView extends FrameLayout
     return toolbar;
   }
 
+  /** Returns the container view containing the non-scrim content of the {@link SearchView}. */
+  @NonNull
+  public View getSearchContainer() {
+    return rootView;
+  }
+
   /** Returns the main {@link EditText} which can be used for hint and search text. */
   @NonNull
   public EditText getEditText() {
@@ -748,6 +811,7 @@ public class SearchView extends FrameLayout
   @SuppressLint("KotlinPropertyAccess") // Editable extends CharSequence.
   public void setText(@Nullable CharSequence text) {
     editText.setText(text);
+    dummyTextView.setText(text);
   }
 
   /** Sets the text of main {@link EditText}. */
@@ -901,7 +965,9 @@ public class SearchView extends FrameLayout
       return;
     }
     if (searchBar != null && searchBar.isAttachedToWindow()) {
-      searchBar.setPlaceholderText(editText.getText().toString());
+      if (!containedAnimationEnabled) {
+        searchBar.setPlaceholderText(editText.getText().toString());
+      }
       searchBar.post(searchViewAnimationHelper::hide);
     } else {
       searchViewAnimationHelper.hide();
@@ -941,6 +1007,17 @@ public class SearchView extends FrameLayout
   void requestFocusAndShowKeyboardIfNeeded() {
     if (autoShowKeyboard) {
       requestFocusAndShowKeyboard();
+    } else if (!isInTouchMode()) {
+      // We still want to request focus if we are in non-touch mode so that focus doesn't go
+      // behind the searchview.
+      editText.postDelayed(
+          () -> {
+            if (editText.requestFocus()) {
+              // Workaround for talkback issue when clear button is clicked
+              editText.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED);
+            }
+          },
+          TALKBACK_FOCUS_CHANGE_DELAY_MS);
     }
   }
 

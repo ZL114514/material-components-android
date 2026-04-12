@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (C) 2025 The Android Open Source Project
+  ~ Copyright (C) 2026 The Android Open Source Project
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@
   <string name="material_timepicker_select_time">ជ្រើស​ម៉ោង</string>
   <string name="material_timepicker_minute">នាទី​</string>
   <string name="material_timepicker_hour">ម៉ោង</string>
+  <string name="material_timepicker_minute_error">នាទីត្រូវតែពី 0–59</string>
+  <string name="material_timepicker_hour_error">ម៉ោងត្រូវតែពី 1–12</string>
+  <string name="material_timepicker_hour_error_24h">ម៉ោងត្រូវតែពី 0–23</string>
   <string name="material_hour_suffix">ម៉ោង %1$s</string>
   <string name="material_hour_24h_suffix">%1$s ម៉ោង</string>
   <string name="material_minute_suffix">%1$s នាទី</string>
@@ -30,4 +33,6 @@
   <string name="mtrl_timepicker_cancel">បោះបង់</string>
   <string name="material_timepicker_text_input_mode_description">ប្តូរ​ទៅ​មុខងារ​បញ្ចូល​អក្សរ​សម្រាប់​ការ​បញ្ចូល​ម៉ោង។</string>
   <string name="material_timepicker_clock_mode_description">ប្តូរ​ទៅ​មុខងារ​នាឡិកា​សម្រាប់​ការ​បញ្ចូល​ម៉ោង។</string>
+  <string name="material_timepicker_text_input_mode_tooltip">ប្ដូរទៅ​មុខងារបញ្ចូល​អក្សរ</string>
+  <string name="material_timepicker_clock_mode_tooltip">ប្ដូរទៅ​មុខងារនាឡិកា</string>
 </resources>

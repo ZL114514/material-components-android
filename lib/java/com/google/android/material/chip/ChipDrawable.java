@@ -70,6 +70,7 @@ import com.google.android.material.animation.MotionSpec;
 import com.google.android.material.canvas.CanvasCompat;
 import com.google.android.material.color.MaterialColors;
 import com.google.android.material.drawable.DrawableUtils;
+import com.google.android.material.focus.FocusRingDrawable;
 import com.google.android.material.internal.TextDrawableHelper;
 import com.google.android.material.internal.TextDrawableHelper.TextDrawableDelegate;
 import com.google.android.material.internal.ThemeEnforcement;
@@ -365,6 +366,18 @@ public class ChipDrawable extends MaterialShapeDrawable
       // ColorStateList for API level < 23.
       textAppearance.setTextColor(
           MaterialResources.getColorStateList(context, a, R.styleable.Chip_android_textColor));
+    }
+
+    if (VERSION.SDK_INT >= VERSION_CODES.O) {
+      int fontVariationSettingsIndex = MaterialResources.getIndexWithValue(
+          a,
+          R.styleable.Chip_fontVariationSettings,
+          R.styleable.Chip_android_fontVariationSettings);
+      // If fontVariationSettings are not present, avoid resolving the resource as null and
+      // overwriting the text appearance's fontVariationSettings.
+      if (a.hasValue(fontVariationSettingsIndex)) {
+        textAppearance.setFontVariationSettings(a.getString(fontVariationSettingsIndex));
+      }
     }
 
     setTextAppearance(textAppearance);
@@ -1396,6 +1409,23 @@ public class ChipDrawable extends MaterialShapeDrawable
     }
   }
 
+  @Nullable
+  public String getFontVariationSettings() {
+    TextAppearance textAppearance = getTextAppearance();
+    if (textAppearance != null && VERSION.SDK_INT >= VERSION_CODES.O) {
+      return textAppearance.getFontVariationSettings();
+    }
+
+    return null;
+  }
+
+  public void setFontVariationSettings(@Nullable String fontVariationSettings) {
+    TextAppearance textAppearance = getTextAppearance();
+    if (textAppearance != null && VERSION.SDK_INT >= VERSION_CODES.O) {
+      textAppearance.setFontVariationSettings(fontVariationSettings);
+    }
+  }
+
   boolean refreshCloseIconFocus(boolean closeIconFocused) {
     boolean changed = false;
     if (closeIcon != null) {
@@ -1895,13 +1925,15 @@ public class ChipDrawable extends MaterialShapeDrawable
   }
 
   private void updateFrameworkCloseIconRipple() {
-    closeIconRipple =
+    RippleDrawable rippleDrawable =
         new RippleDrawable(
             RippleUtils.sanitizeRippleDrawableColor(getRippleColor()),
             closeIcon,
             // A separate drawable with a solid background is needed for the mask because by
             // default, the close icon has a transparent background.
             closeIconRippleMask);
+    FocusRingDrawable.layer(context, rippleDrawable);
+    closeIconRipple = rippleDrawable;
   }
 
   @Nullable

@@ -10,7 +10,7 @@ buildscript {
 
 plugins {
   id 'com.android.application'
-  id 'org.jetbrains.kotlin.android' version "2.1.21"
+  id 'org.jetbrains.kotlin.android' version "2.2.20"
   id 'org.jetbrains.kotlin.plugin.compose' version "2.2.0"
 }
 
@@ -70,6 +70,7 @@ dependencies {
 
 def srcDirs = [
   'adaptive',
+  'allcomponents',
   'application',
   'application/attrs',
   'application/legacymultidex',
@@ -113,6 +114,7 @@ def srcDirs = [
   'shapetheming',
   'sidesheet',
   'slider',
+  'snackbar',
   'tableofcontents',
   'tabs',
   'textfield',
@@ -135,7 +137,7 @@ android {
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     vectorDrawables.useSupportLibrary = true
     multiDexEnabled true
-    minSdkVersion 21
+    minSdkVersion 23
     targetSdkVersion 33
   }
 

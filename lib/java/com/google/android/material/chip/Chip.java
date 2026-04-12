@@ -76,6 +76,7 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.CollectionIt
 import androidx.customview.widget.ExploreByTouchHelper;
 import com.google.android.material.animation.MotionSpec;
 import com.google.android.material.chip.ChipDrawable.Delegate;
+import com.google.android.material.focus.FocusRingDrawable;
 import com.google.android.material.internal.MaterialCheckable;
 import com.google.android.material.internal.ThemeEnforcement;
 import com.google.android.material.resources.MaterialAttributes;
@@ -86,6 +87,7 @@ import com.google.android.material.ripple.RippleUtils;
 import com.google.android.material.shape.MaterialShapeUtils;
 import com.google.android.material.shape.ShapeAppearanceModel;
 import com.google.android.material.shape.Shapeable;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 
 /**
@@ -455,11 +457,13 @@ public class Chip extends AppCompatCheckBox
 
   private void updateFrameworkRippleBackground() {
     //noinspection NewApi
-    ripple =
+    RippleDrawable rippleDrawable =
         new RippleDrawable(
             RippleUtils.sanitizeRippleDrawableColor(chipDrawable.getRippleColor()),
             getBackgroundDrawable(),
             null);
+    FocusRingDrawable.layer(getContext(), rippleDrawable, chipDrawable);
+    ripple = rippleDrawable;
     chipDrawable.setUseCompatRipple(false);
     //noinspection NewApi
     setBackground(ripple);
@@ -1365,6 +1369,33 @@ public class Chip extends AppCompatCheckBox
           TypedValue.applyDimension(unit, size, getResources().getDisplayMetrics()));
     }
     updateTextPaintDrawState();
+  }
+
+  @Nullable
+  @Override
+  public String getFontVariationSettings() {
+    if (chipDrawable != null) {
+      return chipDrawable.getFontVariationSettings();
+    }
+    return super.getFontVariationSettings();
+  }
+
+  @CanIgnoreReturnValue
+  @Override
+  public boolean setFontVariationSettings(@Nullable String fontVariationSettings) {
+    super.setFontVariationSettings(fontVariationSettings);
+    // ChipDrawable will be null if setFontVariationSettings is being called from the parent
+    // TextView's constructor. This override is in place to pass through subsequent calls
+    // to ChipDrawable and not to ensure xml attributes are properly set on ChipDrawable.
+    // ChipDrawable will handle reading xml attributes on its own and ensure font variation
+    // settings are applied itself.
+    if (chipDrawable != null) {
+      chipDrawable.setFontVariationSettings(fontVariationSettings);
+      updateTextPaintDrawState();
+      return true;
+    }
+
+    return false;
   }
 
   private void updateTextPaintDrawState() {

@@ -12,7 +12,7 @@ path: /catalog/snackbars/
 [Snackbars](https://m3.material.io/components/snackbar/overview) provide brief messages
 about app processes at the bottom of the screen.
 
-<img src="assets/snackbar/snackbar_overview.png" alt="Photo grid: each photo has heart toggle button, 2 selected. Snackbar has upload error message and 'retry' text button." height="300">
+<img src="assets/snackbar/snackbar-overview.png" alt="Photo grid: each photo has heart toggle button, 2 selected. Snackbar has upload error message and 'retry' text button." height="300">
 
 Snackbars inform users of a process that an app has performed or will perform.
 They appear temporarily, towards the bottom of the screen. They shouldn’t
@@ -32,7 +32,7 @@ action that was just taken, or retrying an action that had failed.
 
 ## Anatomy
 
-<img src="assets/snackbar/snackbar_anatomy.png" alt="Snackbar anatomy that includes text label, container, and Action." width="850">
+<img src="assets/snackbar/snackbar-anatomy.png" alt="Snackbar anatomy that includes text label, container, and Action." width="850">
 
 1.  Container
 2.  Supporting text
@@ -71,13 +71,22 @@ Element              | Attribute                  | Related method(s)    | Defau
 **Text color alpha** | `app:actionTextColorAlpha` | N/A                  | `1.0f`
 **Text Color**       | `android:textColor`        | `setTextActionColor` | `?attr/colorPrimaryInverse`
 
+### Close attributes
+
+Element                    | Attribute      | Related method(s)      | Default value
+-------------------------- |----------------|------------------------| -------------
+**Close button style**     | N/A            | N/A                    | `?attr/snackbarCloseButtonStyle`
+**Icon tint**              | `app:iconTint` | `setCloseIconTint`     | `?attr/colorOnSurfaceInverse`
+**Icon**                   | `app:icon`     | `setCloseIconResource` | `@drawable/mtrl_close_24px`
+
 ### Styles
 
-Element                 | Theme attribute           | Default value
------------------------ | ----------------------------- | -----------------
-**Default style**       | `?attr/snackbarStyle`         | `@style/Widget.Material3.Snackbar`
-**Action button style** | `?attr/snackbarButtonStyle`   | `@style/Widget.Material3.Button.TextButton.Snackbar`
-**Text label style**    | `?attr/snackbarTextViewStyle` | `@style/Widget.Material3.Snackbar.TextView`
+Element                   | Theme attribute                  | Default value
+------------------------- |----------------------------------| -----------------
+**Default style**         | `?attr/snackbarStyle`            | `@style/Widget.Material3.Snackbar`
+**Action button style**   | `?attr/snackbarButtonStyle`      | `@style/Widget.Material3.Button.TextButton.Snackbar`
+**Text label style**      | `?attr/snackbarTextViewStyle`    | `@style/Widget.Material3.Snackbar.TextView`
+**Close button style**    | `?attr/snackbarCloseButtonStyle` | `@style/Widget.Material3.Button.IconButton.Close.Snackbar`
 
 For the full list, see
 [styles](https://github.com/material-components/material-components-android/tree/master/lib/java/com/google/android/material/snackbar/res/values/styles.xml)
@@ -113,7 +122,7 @@ which allows the snackbar to enable behavior like swipe-to-dismiss.
 
 The following is an example of a snackbar with an action button:
 
-<img src="assets/snackbar/snackbar_example.png" alt="Snackbar example with white text label and an action button with purple text" width="500">
+<img src="assets/snackbar/snackbar-example.png" alt="Snackbar example with white text label and an action button with purple text" width="500">
 
 In code:
 
@@ -196,6 +205,18 @@ Snackbar.make(contextView, R.string.text_label, Snackbar.LENGTH_LONG)
     .show()
 ```
 
+### Adding a close button
+
+To add a close button to the end of the snackbar, use the `setCloseIconVisible`
+method on the object returned from `make`. Snackbars are automatically dismissed
+when the close button is clicked.
+
+```kt
+Snackbar.make(contextView, R.string.text_label, Snackbar.LENGTH_INDEFINITE)
+    .setCloseIconVisible(true)
+    .show()
+```
+
 ## Customizing snackbar
 
 ### Theming snackbar
@@ -214,7 +235,7 @@ The following is an example of a snackbar with an action button that uses the
 Material.io [Shrine](https://m2.material.io/design/material-studies/shrine.html)
 color theming:
 
-<img src="assets/snackbar/snackbar_theming.png" alt="Snackbar with brown container, pink text, and pink 'Action' text button on
+<img src="assets/snackbar/snackbar-theming.png" alt="Snackbar with brown container, pink text, and pink 'Action' text button on
 light grey screen" width="500">
 
 ##### Implementing snackbar theming

@@ -23,6 +23,7 @@ import static com.google.android.material.theme.overlay.MaterialThemeOverlay.wra
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import androidx.appcompat.widget.AppCompatImageView;
@@ -104,10 +105,18 @@ public class BottomSheetDragHandleView extends AppCompatImageView implements
    * the sheet.
    */
   private final OnGestureListener gestureListener = new SimpleOnGestureListener() {
-
     @Override
     public boolean onDown(@NonNull MotionEvent e) {
       return isClickable();
+    }
+
+    @Override
+    public void onLongPress(@NonNull MotionEvent e) {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        performLongClick(e.getX(), e.getY());
+      } else {
+        performLongClick();
+      }
     }
 
     @Override
@@ -140,6 +149,11 @@ public class BottomSheetDragHandleView extends AppCompatImageView implements
 
     // Override the provided context with the wrapped one to prevent it from being used.
     context = getContext();
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      setTooltipText(
+          getResources().getString(R.string.bottomsheet_drag_handle_content_description));
+    }
 
     gestureDetector =
         new GestureDetector(context, gestureListener, new Handler(Looper.getMainLooper()));
@@ -326,16 +340,18 @@ public class BottomSheetDragHandleView extends AppCompatImageView implements
                 : BottomSheetBehavior.STATE_EXPANDED;
         break;
       case BottomSheetBehavior.STATE_EXPANDED:
-        nextState =
-            canHalfExpand
-                ? BottomSheetBehavior.STATE_HALF_EXPANDED
-                : BottomSheetBehavior.STATE_COLLAPSED;
+        if (canHalfExpand) {
+          nextState = BottomSheetBehavior.STATE_HALF_EXPANDED;
+        } else if (bottomSheetBehavior.canCollapse()) {
+          nextState = BottomSheetBehavior.STATE_COLLAPSED;
+        }
         break;
       case BottomSheetBehavior.STATE_HALF_EXPANDED:
-        nextState =
-            clickToExpand
-                ? BottomSheetBehavior.STATE_EXPANDED
-                : BottomSheetBehavior.STATE_COLLAPSED;
+        if (clickToExpand) {
+          nextState = BottomSheetBehavior.STATE_EXPANDED;
+        } else if (bottomSheetBehavior.canCollapse()) {
+          nextState = BottomSheetBehavior.STATE_COLLAPSED;
+        }
         break;
       default: // fall out
     }
