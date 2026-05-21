@@ -595,6 +595,7 @@
 
   <style name="Widget.Material3.SplitButton.IconButton.Filled" parent="Widget.Material3.Button.IconButton.Filled">
     <item name="android:insetLeft">0dp</item>
+    <item name="android:insetRight">0dp</item>
     <item name="android:paddingTop">6dp</item>
     <item name="android:paddingBottom">6dp</item>
     <item name="android:paddingStart">14dp</item>
@@ -612,6 +613,7 @@
 
   <style name="Widget.Material3.SplitButton.IconButton.Filled.Tonal" parent="Widget.Material3.Button.IconButton.Filled.Tonal">
     <item name="android:insetLeft">0dp</item>
+    <item name="android:insetRight">0dp</item>
     <item name="android:paddingTop">6dp</item>
     <item name="android:paddingBottom">6dp</item>
     <item name="android:paddingStart">14dp</item>

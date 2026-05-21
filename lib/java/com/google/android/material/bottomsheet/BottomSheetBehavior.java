@@ -29,6 +29,7 @@ import android.animation.ValueAnimator.AnimatorUpdateListener;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
+import android.graphics.Rect;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 import android.os.Parcel;
@@ -315,6 +316,7 @@ public class BottomSheetBehavior<V extends View> extends CoordinatorLayout.Behav
 
   private boolean draggableOnNestedScroll = true;
   private boolean draggableOnNestedScrollLastDragIgnored;
+  private boolean autoExpandOnRequestChildRectangleOffscreen = true;
 
   @State int state = STATE_COLLAPSED;
 
@@ -362,6 +364,8 @@ public class BottomSheetBehavior<V extends View> extends CoordinatorLayout.Behav
   final SparseIntArray expandActionIds = new SparseIntArray();
   @VisibleForTesting
   final SparseIntArray collapseActionIds = new SparseIntArray();
+
+  private final Rect sheetRect = new Rect();
 
   public BottomSheetBehavior() {}
 
@@ -440,6 +444,12 @@ public class BottomSheetBehavior<V extends View> extends CoordinatorLayout.Behav
             R.styleable.BottomSheetBehavior_Layout_behavior_multipleScrollingChildrenSupported,
             false);
 
+    autoExpandOnRequestChildRectangleOffscreen =
+        a.getBoolean(
+            R.styleable
+                .BottomSheetBehavior_Layout_behavior_autoExpandOnRequestChildRectangleOffscreen,
+            true);
+
     // Reading out if we are handling padding, so we can apply it to the content.
     paddingBottomSystemWindowInsets =
         a.getBoolean(R.styleable.BottomSheetBehavior_Layout_paddingBottomSystemWindowInsets, false);
@@ -505,6 +515,36 @@ public class BottomSheetBehavior<V extends View> extends CoordinatorLayout.Behav
     viewRef = null;
     viewDragHelper = null;
     bottomContainerBackHelper = null;
+  }
+
+  @Override
+  public boolean onRequestChildRectangleOnScreen(
+      @NonNull CoordinatorLayout coordinatorLayout,
+      @NonNull V child,
+      @NonNull Rect rectangle,
+      boolean immediate) {
+    if (!autoExpandOnRequestChildRectangleOffscreen || child.isInTouchMode()) {
+      return false;
+    }
+
+    if (state != STATE_COLLAPSED && state != STATE_HALF_EXPANDED) {
+      return false;
+    }
+
+    if (child.getLocalVisibleRect(sheetRect)) {
+      WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(child);
+      if (insets != null) {
+        sheetRect.bottom -= insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+      }
+      // Expand only if the requested rectangle is not fully visible vertically, accounting for
+      // system navigation bar insets
+      if (rectangle.top >= sheetRect.top && rectangle.bottom <= sheetRect.bottom) {
+        return false;
+      }
+    }
+
+    setState(STATE_EXPANDED);
+    return true;
   }
 
   @Override
@@ -1279,6 +1319,43 @@ public class BottomSheetBehavior<V extends View> extends CoordinatorLayout.Behav
 
   public boolean isDraggableOnNestedScroll() {
     return draggableOnNestedScroll;
+  }
+
+  /**
+   * Sets whether the bottom sheet should automatically expand when one of its children requests to
+   * be on screen. For example, if an off-screen child gains focus during input navigation (e.g.,
+   * using tab or arrow keys) while the bottom sheet is collapsed, the sheet will expand to reveal
+   * the focused child, improving accessibility.
+   *
+   * <p>Internally, the behavior relies on {@code onRequestChildRectangleOnScreen}.
+   *
+   * <p>Only works on Android API level 36+.
+   *
+   * @param autoExpandOnRequestChildRectangleOffscreen {@code true} to automatically expand.
+   * @attr ref
+   *     com.google.android.material.R.styleable#BottomSheetBehavior_Layout_behavior_autoExpandOnRequestChildRectangleOffscreen
+   */
+  public void setAutoExpandOnRequestChildRectangleOffscreen(
+      boolean autoExpandOnRequestChildRectangleOffscreen) {
+    this.autoExpandOnRequestChildRectangleOffscreen = autoExpandOnRequestChildRectangleOffscreen;
+  }
+
+  /**
+   * Gets whether the bottom sheet should automatically expand when one of its children requests to
+   * be on screen. For example, if an off-screen child gains focus during input navigation (e.g.,
+   * using tab or arrow keys) while the bottom sheet is collapsed, the sheet will expand to reveal
+   * the focused child, improving accessibility.
+   *
+   * <p>Internally, the behavior relies on {@code onRequestChildRectangleOnScreen}.
+   *
+   * <p>Only works on Android API level 36+.
+   *
+   * @return {@code true} if it automatically expands.
+   * @attr ref
+   *     com.google.android.material.R.styleable#BottomSheetBehavior_Layout_behavior_autoExpandOnRequestChildRectangleOffscreen
+   */
+  public boolean isAutoExpandOnRequestChildRectangleOffscreen() {
+    return autoExpandOnRequestChildRectangleOffscreen;
   }
 
   /**

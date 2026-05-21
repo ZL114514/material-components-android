@@ -65,6 +65,11 @@ public class AllComponentsDemoFragment extends DemoFragment {
     return view;
   }
 
+  @Override
+  public int getLiftOnScrollTargetViewId() {
+    return R.id.nested_scroll_view;
+  }
+
   private void setUpBottomNavigation(View view) {
     BottomNavigationView bottomNav = view.findViewById(R.id.bottom_navigation);
     bottomNav.setOnApplyWindowInsetsListener(null);

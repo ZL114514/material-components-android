@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
+import android.graphics.Rect;
 import android.os.SystemClock;
 import android.util.SparseIntArray;
 import android.view.LayoutInflater;
@@ -56,6 +57,7 @@ import androidx.test.espresso.assertion.ViewAssertions;
 import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.filters.MediumTest;
 import androidx.test.filters.SmallTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.ActivityTestRule;
 import androidx.test.runner.AndroidJUnit4;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -714,6 +716,60 @@ public class BottomSheetBehaviorTest {
     // Check that the bottom sheet stays the same collapsed state
     activityTestRule.runOnUiThread(
         () -> assertThat(getBehavior().getState(), is(BottomSheetBehavior.STATE_COLLAPSED)));
+  }
+
+  @Test
+  @MediumTest
+  public void testAutoExpandOnRequestChildRectangleOffscreen() throws Throwable {
+    verifyAutoExpandOnRequestChildRectangleOffscreen(
+        /* autoExpand= */ true, /* expectedState= */ BottomSheetBehavior.STATE_EXPANDED);
+  }
+
+  @Test
+  @MediumTest
+  public void testNoAutoExpandOnRequestChildRectangleOffscreen() throws Throwable {
+    verifyAutoExpandOnRequestChildRectangleOffscreen(
+        /* autoExpand= */ false, /* expectedState= */ BottomSheetBehavior.STATE_COLLAPSED);
+  }
+
+  private void verifyAutoExpandOnRequestChildRectangleOffscreen(
+      boolean autoExpand, int expectedState) throws Throwable {
+    InstrumentationRegistry.getInstrumentation().setInTouchMode(false);
+    try {
+      getBehavior().setAutoExpandOnRequestChildRectangleOffscreen(autoExpand);
+      checkSetState(BottomSheetBehavior.STATE_COLLAPSED, ViewMatchers.isDisplayed());
+
+      activityTestRule.runOnUiThread(
+          () -> {
+            ViewGroup bottomSheet = getBottomSheet();
+            View child = new View(activityTestRule.getActivity());
+            // Add view that falls outside of the collapsed bottom sheet.
+            bottomSheet.addView(
+                child,
+                new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, getCoordinatorLayout().getHeight() * 2));
+          });
+
+      InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+
+      activityTestRule.runOnUiThread(
+          () -> {
+            ViewGroup bottomSheet = getBottomSheet();
+            View child = bottomSheet.getChildAt(bottomSheet.getChildCount() - 1);
+            child.requestRectangleOnScreen(new Rect(0, 0, child.getWidth(), child.getHeight()));
+          });
+
+      registerIdlingResourceCallback();
+      try {
+        Espresso.onView(ViewMatchers.withId(R.id.bottom_sheet))
+            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
+        assertThat(getBehavior().getState(), is(expectedState));
+      } finally {
+        unregisterIdlingResourceCallback();
+      }
+    } finally {
+      InstrumentationRegistry.getInstrumentation().setInTouchMode(true);
+    }
   }
 
   @Test

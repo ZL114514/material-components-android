@@ -21,6 +21,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -119,16 +120,15 @@ public class MaskableFrameLayout extends FrameLayout implements Maskable, Shapea
             });
     shapeableDelegate.onShapeAppearanceChanged(this, this.shapeAppearanceModel);
 
-    FocusRingDrawable focusRingBackground = FocusRingDrawable.find(getBackground());
-    if (focusRingBackground != null) {
-      focusRingBackground.mutate();
-      focusRingBackground.setFocusRingShapeAppearance(this.shapeAppearanceModel);
-    }
+    maybeUpdateFocusRingDrawableShapeAppearance(getBackground(), this.shapeAppearanceModel);
+    maybeUpdateFocusRingDrawableShapeAppearance(getForeground(), this.shapeAppearanceModel);
+  }
 
-    FocusRingDrawable focusRingForeground = FocusRingDrawable.find(getForeground());
-    if (focusRingForeground != null) {
-      focusRingForeground.mutate();
-      focusRingForeground.setFocusRingShapeAppearance(this.shapeAppearanceModel);
+  private void maybeUpdateFocusRingDrawableShapeAppearance(
+      @Nullable Drawable drawable, @NonNull ShapeAppearanceModel shapeAppearanceModel) {
+    FocusRingDrawable focusRingDrawable = FocusRingDrawable.findAndMutate(drawable);
+    if (focusRingDrawable != null) {
+      focusRingDrawable.setFocusRingShapeAppearance(shapeAppearanceModel);
     }
   }
 

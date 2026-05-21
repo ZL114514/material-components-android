@@ -78,6 +78,9 @@ public class MaterialAutoCompleteTextView extends AppCompatAutoCompleteTextView 
 
   @NonNull private final ListPopupWindow modalListPopup;
   @Nullable private final AccessibilityManager accessibilityManager;
+  // Note: state_window_focused can't be used here because the RippleDrawable / FocusRingDrawable
+  // for the selected item does not seem to gain window focus.
+  @NonNull private final int[] selectedStateSet = new int[] {android.R.attr.state_selected};
   @NonNull private final Rect tempRect = new Rect();
   @LayoutRes private final int simpleItemLayout;
   private final float popupElevation;
@@ -204,7 +207,19 @@ public class MaterialAutoCompleteTextView extends AppCompatAutoCompleteTextView 
   }
 
   @Override
+  public boolean isPopupShowing() {
+    //noinspection ConstantConditions
+    if (modalListPopup != null && modalListPopup.isShowing()) {
+      return true;
+    }
+    return super.isPopupShowing();
+  }
+
+  @Override
   public boolean onKeyDown(int keyCode, @NonNull KeyEvent event) {
+    if (isPopupShowing()) {
+      return super.onKeyDown(keyCode, event);
+    }
     if (shouldShowPopup(keyCode)) {
       TextInputLayout textInputLayout = findTextInputLayoutAncestor();
       if (textInputLayout != null) {
@@ -607,7 +622,10 @@ public class MaterialAutoCompleteTextView extends AppCompatAutoCompleteTextView 
         // the selected list item stateful as expected.
         colorDrawable.setTintList(selectedItemRippleOverlaidColor);
         RippleDrawable rippleDrawable = new RippleDrawable(pressedRippleColor, colorDrawable, null);
-        FocusRingDrawable.layer(getContext(), rippleDrawable);
+        FocusRingDrawable focusRingDrawable = FocusRingDrawable.layer(getContext(), rippleDrawable);
+        if (focusRingDrawable != null) {
+          focusRingDrawable.setFocusRingStateSet(selectedStateSet);
+        }
         return rippleDrawable;
       } else {
         return colorDrawable;

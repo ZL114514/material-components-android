@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (C) 2022 The Android Open Source Project
+  ~ Copyright (C) 2026 The Android Open Source Project
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -14,9 +14,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-
-<!-- Layout used by SwitchPreference for the switch widget style. This is inflated
-     inside android.R.layout.preference. -->
 <com.google.android.material.materialswitch.MaterialSwitch
   xmlns:android="http://schemas.android.com/apk/res/android"
   android:id="@+id/switchWidget"

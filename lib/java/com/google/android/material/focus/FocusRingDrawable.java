@@ -17,6 +17,8 @@ package com.google.android.material.focus;
 
 import com.google.android.material.R;
 
+import static java.lang.Math.min;
+
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
@@ -28,6 +30,7 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
 import android.graphics.Path;
@@ -36,8 +39,10 @@ import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.DrawableWrapper;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.graphics.drawable.ShapeDrawable;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 import android.util.AttributeSet;
@@ -45,6 +50,8 @@ import android.util.FloatProperty;
 import android.util.StateSet;
 import android.util.TypedValue;
 import android.view.animation.OvershootInterpolator;
+import androidx.annotation.ColorInt;
+import androidx.annotation.DimenRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -58,6 +65,7 @@ import com.google.android.material.shape.StateListShapeAppearanceModel;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.Arrays;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -66,7 +74,9 @@ public class FocusRingDrawable extends DrawableWrapper {
 
   private static final boolean DEBUG_COLORS = false;
   private static final Drawable EMPTY_DRAWABLE = new ColorDrawable(Color.TRANSPARENT);
-  private static final int[] FOCUSED_STATE_SET = {android.R.attr.state_focused};
+  private static final int[] FOCUSED_STATE_SET = {
+    android.R.attr.state_focused, android.R.attr.state_window_focused
+  };
 
   private static final TimeInterpolator INTERPOLATOR = new OvershootInterpolator(4f);
   private static final int ANIMATION_DURATION = 300;
@@ -172,6 +182,31 @@ public class FocusRingDrawable extends DrawableWrapper {
     // require drawable inflation) and if focus rings are enabled in the theme.
     return VERSION.SDK_INT >= VERSION_CODES.N
         && MaterialAttributes.resolveBoolean(context.getTheme(), R.attr.focusRingsEnabled, false);
+  }
+
+  /**
+   * Search for, mutate, and return a FocusRingDrawable if it is either the provided drawable or one
+   * level deep in a DrawableWrapper or LayerDrawable.
+   *
+   * <p>If the FocusRingDrawable is a child of a DrawableWrapper or LayerDrawable, then the parent
+   * DrawableWrapper or LayerDrawable will be mutated instead of the FocusRingDrawable. This will in
+   * turn recreate and mutate the child FocusRingDrawable, which helps prevent issues related to
+   * constant state.
+   *
+   * <p>Also see {@link #find(Drawable)}.
+   */
+  @Nullable
+  public static FocusRingDrawable findAndMutate(@Nullable Drawable drawable) {
+    if (drawable == null || find(drawable) == null) {
+      return null;
+    }
+
+    // Make sure to mutate the main drawable instead of just the FocusRingDrawable, for cases where
+    // the main drawable is a DrawableWrapper / LayerDrawable that contains the FocusRingDrawable.
+    drawable.mutate();
+
+    // Re-find the FocusRingDrawable since the instance likely changed due to the mutate call above.
+    return find(drawable);
   }
 
   /**
@@ -347,8 +382,6 @@ public class FocusRingDrawable extends DrawableWrapper {
 
   private void updateStateFromTypedArrayWithThemeAttrsAndDefaults(
       @NonNull TypedArray a, @NonNull Theme theme) {
-    Resources res = theme.getResources();
-
     if (state.ringEnabledAttr != Integer.MIN_VALUE) {
       TypedValue typedValue = MaterialAttributes.resolve(theme, state.ringEnabledAttr);
       if (typedValue != null) {
@@ -382,9 +415,6 @@ public class FocusRingDrawable extends DrawableWrapper {
             R.styleable.FocusRingDrawable_focusRingsInnerStrokeColor,
             Color.WHITE);
 
-    float defaultStrokeWidth =
-        res.getDimensionPixelSize(R.dimen.mtrl_focus_ring_outer_stroke_width);
-
     state.ringOuterStrokeWidth =
         maybeResolveDimension(
             state.ringOuterStrokeWidth,
@@ -392,7 +422,7 @@ public class FocusRingDrawable extends DrawableWrapper {
             state.ringOuterStrokeWidthAttr,
             a,
             R.styleable.FocusRingDrawable_focusRingsOuterStrokeWidth,
-            defaultStrokeWidth);
+            R.dimen.mtrl_focus_ring_outer_stroke_width);
 
     state.ringInnerStrokeWidth =
         maybeResolveDimension(
@@ -401,7 +431,7 @@ public class FocusRingDrawable extends DrawableWrapper {
             state.ringInnerStrokeWidthAttr,
             a,
             R.styleable.FocusRingDrawable_focusRingsInnerStrokeWidth,
-            defaultStrokeWidth);
+            R.dimen.mtrl_focus_ring_inner_stroke_width);
 
     state.ringRadius =
         maybeResolveDimension(
@@ -410,7 +440,7 @@ public class FocusRingDrawable extends DrawableWrapper {
             state.ringRadiusAttr,
             a,
             R.styleable.FocusRingDrawable_focusRingsRadius,
-            Float.NaN);
+            /* defaultValueResId= */ 0);
 
     state.ringInset =
         maybeResolveDimension(
@@ -419,7 +449,10 @@ public class FocusRingDrawable extends DrawableWrapper {
             state.ringInsetAttr,
             a,
             R.styleable.FocusRingDrawable_focusRingsInset,
-            0f);
+            /* defaultValueResId= */ 0);
+    if (Float.isNaN(state.ringInset)) {
+      state.ringInset = 0;
+    }
 
     state.ringInnerInset =
         maybeResolveDimension(
@@ -428,7 +461,7 @@ public class FocusRingDrawable extends DrawableWrapper {
             state.ringInnerInsetAttr,
             a,
             R.styleable.FocusRingDrawable_focusRingsInnerStrokeInset,
-            0f);
+            R.dimen.mtrl_focus_ring_inner_stroke_inset);
 
     if (state.ringShapeAppearanceResId != Integer.MIN_VALUE) {
       state.ringShapeAppearance =
@@ -493,17 +526,22 @@ public class FocusRingDrawable extends DrawableWrapper {
       @StyleableRes int attrIndex,
       @NonNull TypedArray a,
       @StyleableRes int regularIndex,
-      float defaultValue) {
+      @DimenRes int defaultValueResId) {
     if (!Float.isNaN(currentValue)) {
       return currentValue;
     }
+    Resources resources = theme.getResources();
     if (attrIndex != Float.MIN_VALUE) {
       TypedValue value = new TypedValue();
       if (theme.resolveAttribute(attrIndex, value, true)) {
-        return value.getDimension(theme.getResources().getDisplayMetrics());
+        return value.getDimension(resources.getDisplayMetrics());
       }
     }
-    return a.getDimension(regularIndex, defaultValue);
+    float value = a.getDimension(regularIndex, Float.NaN);
+    if (!Float.isNaN(value)) {
+      return value;
+    }
+    return defaultValueResId == 0 ? Float.NaN : resources.getDimension(defaultValueResId);
   }
 
   private void inflateChildDrawable(
@@ -576,7 +614,7 @@ public class FocusRingDrawable extends DrawableWrapper {
       this.focused = false;
       return super.onStateChange(stateSet);
     }
-    boolean focused = StateSet.stateSetMatches(FOCUSED_STATE_SET, stateSet);
+    boolean focused = StateSet.stateSetMatches(state.ringStateSet, stateSet);
     boolean changed = this.focused != focused;
     this.focused = focused;
 
@@ -706,6 +744,64 @@ public class FocusRingDrawable extends DrawableWrapper {
     state.ringEnabled = enabled;
   }
 
+  @ColorInt
+  public int getFocusRingOuterStrokeColor() {
+    return state.ringOuterColor;
+  }
+
+  public void setFocusRingOuterStrokeColor(@ColorInt int outerStrokeColor) {
+    state.ringOuterColor = outerStrokeColor;
+  }
+
+  @ColorInt
+  public int getFocusRingInnerStrokeColor() {
+    return state.ringInnerColor;
+  }
+
+  public void setFocusRingInnerStrokeColor(@ColorInt int innerStrokeColor) {
+    state.ringInnerColor = innerStrokeColor;
+  }
+
+  public float getFocusRingOuterStrokeWidth() {
+    return state.ringOuterStrokeWidth;
+  }
+
+  public void setFocusRingOuterStrokeWidth(float outerStrokeWidth) {
+    state.ringOuterStrokeWidth = outerStrokeWidth;
+  }
+
+  public float getFocusRingInnerStrokeWidth() {
+    return state.ringInnerStrokeWidth;
+  }
+
+  public void setFocusRingInnerStrokeWidth(float innerStrokeWidth) {
+    state.ringInnerStrokeWidth = innerStrokeWidth;
+  }
+
+  public float getFocusRingInset() {
+    return state.ringInset;
+  }
+
+  public void setFocusRingInset(float inset) {
+    state.ringInset = inset;
+  }
+
+  public float getFocusRingInnerInset() {
+    return state.ringInnerInset;
+  }
+
+  public void setFocusRingInnerInset(float innerInset) {
+    state.ringInnerInset = innerInset;
+  }
+
+  public float getFocusRingRadius() {
+    return state.ringRadius;
+  }
+
+  public void setFocusRingRadius(float radius) {
+    state.ringRadius = radius;
+  }
+
   @Nullable
   public MaterialShapeDrawable getFocusRingMaterialShapeDrawable() {
     return materialShapeDrawable != null ? materialShapeDrawable.get() : null;
@@ -725,6 +821,15 @@ public class FocusRingDrawable extends DrawableWrapper {
     state.ringShapeAppearance = shapeAppearance;
   }
 
+  public boolean updateFocusRingShapeAppearanceFromWrappedDrawable() {
+    ShapeAppearance shapeAppearance = toShapeAppearance(getDrawable());
+    if (shapeAppearance != null) {
+      updateShapeAppearanceCornerSizeOrPath(shapeAppearance);
+      return true;
+    }
+    return false;
+  }
+
   @Nullable
   public Rect getFocusRingBounds() {
     return state.ringCustomBounds;
@@ -739,6 +844,15 @@ public class FocusRingDrawable extends DrawableWrapper {
       state.ringCustomBounds = new Rect();
     }
     state.ringCustomBounds.set(left, top, right, bottom);
+  }
+
+  @NonNull
+  public int[] getFocusRingStateSet() {
+    return state.ringStateSet;
+  }
+
+  public void setFocusRingStateSet(@NonNull int[] stateSet) {
+    state.ringStateSet = stateSet;
   }
 
   private void calculateBounds(RectF rectF) {
@@ -798,25 +912,99 @@ public class FocusRingDrawable extends DrawableWrapper {
 
   private void calculateShapeAppearanceRoundRectOrPath() {
     if (state.ringShapeAppearance != null) {
-      calculateBounds(tmpRectF);
+      updateShapeAppearanceCornerSizeOrPath(state.ringShapeAppearance);
+      return;
+    }
+    if (updateFocusRingShapeAppearanceFromWrappedDrawable()) {
+      return;
+    }
+    shapeAppearanceCornerSize = -1;
+    shapeAppearancePath.reset();
+  }
 
-      ShapeAppearanceModel shapeAppearanceModel =
-          state.ringShapeAppearance.getShapeForState(FOCUSED_STATE_SET);
+  private void updateShapeAppearanceCornerSizeOrPath(ShapeAppearance shapeAppearance) {
+    calculateBounds(tmpRectF);
 
-      if (shapeAppearanceModel.isRoundRect(tmpRectF)) {
-        float outerInset = calculateOuterInset();
-        tmpRectF.inset(outerInset, outerInset);
-        shapeAppearanceCornerSize =
-            shapeAppearanceModel.getTopLeftCornerSize().getCornerSize(tmpRectF);
-        shapeAppearancePath.reset();
-      } else {
-        pathProvider.calculatePath(
-            shapeAppearanceModel, null, 1, tmpRectF, null, shapeAppearancePath);
-        shapeAppearanceCornerSize = -1;
-      }
-    } else {
-      shapeAppearanceCornerSize = -1;
+    ShapeAppearanceModel shapeAppearanceModel = shapeAppearance.getShapeForState(FOCUSED_STATE_SET);
+
+    if (shapeAppearanceModel.isRoundRect(tmpRectF)) {
+      float outerInset = calculateOuterInset();
+      tmpRectF.inset(outerInset, outerInset);
+      shapeAppearanceCornerSize =
+          shapeAppearanceModel.getTopLeftCornerSize().getCornerSize(tmpRectF);
       shapeAppearancePath.reset();
+    } else {
+      pathProvider.calculatePath(
+          shapeAppearanceModel, null, 1, tmpRectF, null, shapeAppearancePath);
+      shapeAppearanceCornerSize = -1;
+    }
+  }
+
+  @Nullable
+  private ShapeAppearance toShapeAppearance(@Nullable Drawable drawable) {
+    if (drawable instanceof ShapeDrawable) {
+      return toShapeAppearance((ShapeDrawable) drawable);
+    }
+    if (drawable instanceof GradientDrawable) {
+      return toShapeAppearance((GradientDrawable) drawable);
+    }
+    return null;
+  }
+
+  @Nullable
+  private ShapeAppearance toShapeAppearance(@NonNull ShapeDrawable shapeDrawable) {
+    if (VERSION.SDK_INT < VERSION_CODES.N) {
+      return null;
+    }
+    Outline outline = new Outline();
+    shapeDrawable.getOutline(outline);
+    if (outline.getRadius() > 0) {
+      return ShapeAppearanceModel.builder().setAllCornerSizes(outline.getRadius()).build();
+    }
+    return null;
+  }
+
+  @Nullable
+  private ShapeAppearance toShapeAppearance(@NonNull GradientDrawable gradientDrawable) {
+    if (VERSION.SDK_INT < VERSION_CODES.N) {
+      return null;
+    }
+    float[] cornerRadii = getCornerRadiiOrNull(gradientDrawable);
+    if (cornerRadii != null) {
+      // ShapeAppearance doesn't support different x and y radius values for each corner, so just
+      // take the min of x and y for now, which shouldn't be different in most cases.
+      return ShapeAppearanceModel.builder()
+          .setTopLeftCornerSize(min(cornerRadii[0], cornerRadii[1]))
+          .setTopRightCornerSize(min(cornerRadii[2], cornerRadii[3]))
+          .setBottomRightCornerSize(min(cornerRadii[4], cornerRadii[5]))
+          .setBottomLeftCornerSize(min(cornerRadii[6], cornerRadii[7]))
+          .build();
+    }
+    float cornerRadius = getCornerRadius(gradientDrawable);
+    if (cornerRadius > 0) {
+      return ShapeAppearanceModel.builder().setAllCornerSizes(cornerRadius).build();
+    }
+    return null;
+  }
+
+  @RequiresApi(api = VERSION_CODES.N)
+  @Nullable
+  private float[] getCornerRadiiOrNull(GradientDrawable gradientDrawable) {
+    // Calling getCornerRadii() before GradientDrawable has its state causes an NPE.
+    try {
+      return gradientDrawable.getCornerRadii();
+    } catch (NullPointerException e) {
+      return null;
+    }
+  }
+
+  @RequiresApi(api = VERSION_CODES.N)
+  private float getCornerRadius(GradientDrawable gradientDrawable) {
+    // Calling getCornerRadius() before GradientDrawable has its state causes an NPE.
+    try {
+      return gradientDrawable.getCornerRadius();
+    } catch (NullPointerException e) {
+      return -1f;
     }
   }
 
@@ -888,6 +1076,7 @@ public class FocusRingDrawable extends DrawableWrapper {
     private int ringShapeAppearanceResId = Integer.MIN_VALUE;
     private int ringShapeAppearanceAttr = Integer.MIN_VALUE;
     @Nullable private Rect ringCustomBounds = null;
+    @NonNull private int[] ringStateSet = FOCUSED_STATE_SET;
 
     FocusRingState(@Nullable FocusRingState orig) {
       if (orig != null) {
@@ -925,6 +1114,7 @@ public class FocusRingDrawable extends DrawableWrapper {
         if (orig.ringCustomBounds != null) {
           this.ringCustomBounds = new Rect(orig.ringCustomBounds);
         }
+        this.ringStateSet = Arrays.copyOf(orig.ringStateSet, orig.ringStateSet.length);
       }
     }
 

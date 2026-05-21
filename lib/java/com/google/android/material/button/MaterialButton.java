@@ -2099,8 +2099,16 @@ public class MaterialButton extends AppCompatButton implements Checkable, Shapea
 
   private void updatePaddingsAndSizeForWidthAnimation() {
     int widthChange = (int) (displayedWidthIncrease - displayedWidthDecrease);
-    int paddingStartChange = widthChange / 2 + opticalCenterShift;
-    getLayoutParams().width = (int) (originalWidth + widthChange);
+
+    // Adjust the shift based on layout direction
+    int effectiveShift = isLayoutRTL() ? -opticalCenterShift : opticalCenterShift;
+
+    int paddingStartChange = widthChange / 2 + effectiveShift;
+
+    if (getLayoutParams() != null) {
+      getLayoutParams().width = (int) (originalWidth + widthChange);
+    }
+
     setPaddingRelative(
         originalPaddingStart + paddingStartChange,
         getPaddingTop(),

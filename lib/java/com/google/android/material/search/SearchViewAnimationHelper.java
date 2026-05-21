@@ -257,7 +257,7 @@ class SearchViewAnimationHelper {
 
   private AnimatorSet startHideAnimationCollapse() {
     if (searchView.isAdjustNothingSoftInputMode()) {
-      searchView.clearFocusAndHideKeyboard();
+      editText.clearFocus();
     }
     boolean show = false;
     AnimationCoordinator coordinator = new AnimationCoordinator();
@@ -280,7 +280,7 @@ class SearchViewAnimationHelper {
             animationDelegate.onAnimationEnd(show);
             rootView.setVisibility(View.GONE);
             if (!searchView.isAdjustNothingSoftInputMode()) {
-              searchView.clearFocusAndHideKeyboard();
+              editText.clearFocus();
             }
             searchView.setTransitionState(SearchView.TransitionState.HIDDEN);
             if (activeCoordinator == coordinator) {
@@ -332,7 +332,7 @@ class SearchViewAnimationHelper {
 
   private AnimatorSet startHideAnimationTranslate() {
     if (searchView.isAdjustNothingSoftInputMode()) {
-      searchView.clearFocusAndHideKeyboard();
+      editText.clearFocus();
     }
     AnimatorSet animatorSet = getTranslateAnimatorSet(false);
     animatorSet.addListener(
@@ -346,7 +346,7 @@ class SearchViewAnimationHelper {
           public void onAnimationEnd(Animator animation) {
             rootView.setVisibility(View.GONE);
             if (!searchView.isAdjustNothingSoftInputMode()) {
-              searchView.clearFocusAndHideKeyboard();
+              editText.clearFocus();
             }
             searchView.setTransitionState(SearchView.TransitionState.HIDDEN);
             if (activeTranslateAnimatorSet == animatorSet) {
@@ -514,7 +514,7 @@ class SearchViewAnimationHelper {
 
     if (backProgressAnimatorSet == null) {
       if (searchView.isAdjustNothingSoftInputMode()) {
-        searchView.clearFocusAndHideKeyboard();
+        editText.clearFocus();
       }
 
       // Early return if navigation icon animation is disabled.
